@@ -80,16 +80,20 @@ class LASI(nn.Module):
         unit_normalize_features: bool = True,
         use_vmap: bool = False, # by default use vectorized version
     ) -> None:
+        super(LASI, self).__init__()
+        
         self.use_vmap = use_vmap and VMAP_AVAILABLE
         self.shape = shape
         self.neighborhood_size = neighborhood_size
         self.ols_regularization_coef = ols_regularization_coef
         self.unit_normalize_features = unit_normalize_features
-        self.all_elements_idx_flat = torch.arange(math.prod(shape))
-        self.all_elements_idx_coord = self.flat_idx_to_coordinates(
-            self.all_elements_idx_flat
+
+        self.register_buffer("all_elements_idx_flat", torch.arange(math.prod(shape)))
+        self.register_buffer(
+            "all_elements_idx_coord", 
+            self.flat_idx_to_coordinates(self.all_elements_idx_flat)
         )
-        self.all_mask_idxs = self.compute_all_l1_mask_idxs()
+        self.register_buffer("all_mask_idxs", self.compute_all_l1_mask_idxs())
 
     def flat_idx_to_coordinates(self, idxs_flat: Tensor) -> Tensor:
         """Converts indices for flat tensors to those of shaped tensors.
