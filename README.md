@@ -65,7 +65,7 @@ lasi = LASI(img_megg.shape, neighborhood_size=10)
 distance = lasi.compute_distance(img_megg, img_dark_megg)
 print(f'd(img_megg, img_dark_megg) = {distance}')
 # Result from JAX: d(img_megg, img_dark_megg) = 1.369293212890625
-# Result frm PyTorch: d(img_megg, img_dark_megg) = 1.3687046766281128
+# Result from PyTorch: d(img_megg, img_dark_megg) = 1.3687046766281128
 # Difference: 0.0005885362625122
 
 # Efficiently compute the distance between multiple images relative to a reference (img_megg).
