@@ -30,6 +30,44 @@ element as input and another that takes the entire tensor itself. The latter
 is a helper that vmaps the former over the tensor **if vmap is available and specified clearly, 
 otherwise a hand-written vectorized version is provided**.
 
+A simple speed comparison is provided below:
+```python
+import time
+
+from PIL import Image
+from lasi_pytorch import LASI
+import torch
+import numpy as np
+
+# load images
+img_megg = Image.open('assets/megg.png').convert('RGB')
+img_megg = torch.tensor(np.array(img_megg))
+img_dark_megg = Image.open('assets/dark_megg.png').convert('RGB')
+img_dark_megg = torch.tensor(np.array(img_dark_megg))
+assert img_dark_megg.shape == img_megg.shape
+
+# init lasi models
+lasi_vmap = LASI(img_megg.shape, neighborhood_size=10, vmap=True)
+lasi_vectorized = LASI(img_megg.shape, neighborhood_size=10, vmap=False)
+
+start = time.time()
+for i in range(100):
+    distance = lasi_vmap.compute_distance(img_megg, img_dark_megg)
+print(f'Elapsed time (vmap): {time.time() - start:.3f}, distance = {distance}')
+print(f'd(img_megg, img_dark_megg) = {distance}')
+
+start = time.time()
+for i in range(100):
+    distance = lasi_vectorized.compute_distance(img_megg, img_dark_megg)
+print(f'Elapsed time (vectorized): {time.time() - start:.3f}, distance = {distance}')
+
+# Results on my machine:
+# Elapsed time (vmap): 16.053 s, distance = 1.3687046766281128
+# Elapsed time (vectorized): 9.634 s, distance = 1.3687046766281128
+# Vectorized speedup: 1.67x
+# Distance: same
+```
+
 ### JIT
 My unofficial implementation does not utilize JIT compilation.
 

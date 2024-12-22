@@ -44,7 +44,7 @@ from torch import Tensor
 partial = functools.partial
 
 try:
-    import torch.vmap as vmap # type: ignore
+    from torch import vmap
     VMAP_AVAILABLE = True
 except ImportError:
     VMAP_AVAILABLE = False
@@ -80,7 +80,7 @@ class LASI(nn.Module):
         unit_normalize_features: bool = True,
         use_vmap: bool = False, # by default use vectorized version
     ) -> None:
-        super(LASI, self).__init__()
+        super().__init__()
         
         self.use_vmap = use_vmap and VMAP_AVAILABLE
         self.shape = shape
@@ -88,12 +88,9 @@ class LASI(nn.Module):
         self.ols_regularization_coef = ols_regularization_coef
         self.unit_normalize_features = unit_normalize_features
 
-        self.register_buffer("all_elements_idx_flat", torch.arange(math.prod(shape)))
-        self.register_buffer(
-            "all_elements_idx_coord", 
-            self.flat_idx_to_coordinates(self.all_elements_idx_flat)
-        )
-        self.register_buffer("all_mask_idxs", self.compute_all_l1_mask_idxs())
+        self.all_elements_idx_flat = torch.arange(math.prod(shape))
+        self.all_elements_idx_coord = self.flat_idx_to_coordinates(self.all_elements_idx_flat)
+        self.all_mask_idxs = self.compute_all_l1_mask_idxs()
 
     def flat_idx_to_coordinates(self, idxs_flat: Tensor) -> Tensor:
         """Converts indices for flat tensors to those of shaped tensors.
@@ -154,8 +151,8 @@ class LASI(nn.Module):
 
         if self.use_vmap:
             def compute_l1_mask_single_element(idx_centre_flat: Tensor) -> Tensor:
-                mask = torch.ones_like(flat_idx).astype(torch.bool)
-                mask &= flat_idx < idx_centre_flat
+                mask = torch.ones_like(flat_idx, dtype=torch.bool)
+                mask = torch.logical_and(mask, flat_idx < idx_centre_flat)
 
                 idx_centre_coord = self.flat_idx_to_coordinates(idx_centre_flat)
                 l1_distance = self.compute_l1_distance(idx_centre_coord, idxs_coord)
@@ -272,10 +269,6 @@ class LASI(nn.Module):
         reg = (
             self.ols_regularization_coef * 80 * torch.eye(self.neighborhood_size) / 127.5
         )
-        if element_idx_flat.item() == 0:
-            print(causal_mask.reshape(-1, 1, 1).shape)
-            print(torch.pow(0.8, l1_distance).reshape(-1, 1, 1).shape)
-            print(tensor_transformed[0].shape)
         coef_matrix = (
             causal_mask.reshape(-1, 1, 1)
             * torch.pow(0.8, l1_distance).reshape(-1, 1, 1)
